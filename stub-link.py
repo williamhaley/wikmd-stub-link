@@ -42,11 +42,14 @@ class Plugin:
         """
         search for [[ stub: some text ]] in "file" and turn it into a search term
         """
-        stubs = re.findall(r"\[\[\s*stub:\s*(.*?)\s*\]\]", file)
+        # ?s to handle a term that may be broken up across multiple lines.
+        stubs = re.findall(r"\[\[\s*stub:\s*((?s).*?)\s*\]\]", file)
         result = file
         for stub in stubs:
+            # If the term spans multiple lines, swap out the newline with a space.
+            normalized_stub = stub.replace('\n', ' ')
             # See if an article exists or not
-            md_file_path = safe_join(self.config.wiki_directory, f"{stub}.md")
+            md_file_path = safe_join(self.config.wiki_directory, f"{normalized_stub}.md")
             is_article = False
             try:
                 # TODO Is there a better indicator, like a real search or lookup API? Does Wikmd handle nested paths, and if so, how does this plugin handle them?
@@ -56,9 +59,9 @@ class Plugin:
                 pass
 
             if is_article:
-                integrate_html = f"<a id=\"{stub}\" href=\"{stub}\">{stub}</a>"
+                integrate_html = f"<a href=\"{normalized_stub}\">{normalized_stub}</a>"
             else:
-                integrate_html = f"<a id=\"{stub}\" style=\"color: orangered\" href=\"/search?q={quote_plus(stub)}\">{stub} [?]</a>"
+                integrate_html = f"<a style=\"color: orangered\" href=\"/search?q={quote_plus(normalized_stub)}\">{normalized_stub} [?]</a>"
             # integrate the page into this one.
             result = re.sub(r"\[\[\s*stub:\s*"+stub+r"\s*\]\]", integrate_html, result)
 
